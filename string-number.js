@@ -14,7 +14,7 @@ class StringNumber {
    * @param {Array[string | number]} terms are incoming list of values that could be of type any
    * @return {string} the sum of the incoming value that is converted back into a string
    */
-   additionSmInt(terms = []) {
+  additionSmInt(terms = []) {
     /**
      * Convert all incoming terms into Number
      */
@@ -96,15 +96,29 @@ class StringNumber {
      * Add up all the string number values from the right to left
      */
     const sumOfTerms = stringTerms.reduce((accumulator, currentVal) => {
-      let currentValIndex = currentVal.length - 1;
-      let accumulatorIndex = accumulator.length - 1;
+      let currentValueInStr;
+      let accumulatorInStr;
+      // convert to string if it's a number so that we can get the length
+      if (typeof currentVal === 'number') {
+        currentValueInStr = currentVal.toString();
+      } else {
+        currentValueInStr = currentVal;
+      }
+      if (typeof accumulator === 'number') {
+        accumulatorInStr = accumulator.toString();
+      } else {
+        accumulatorInStr = accumulator;
+      }
+
+      let currentValIndex = currentValueInStr.length - 1;
+      let accumulatorIndex = accumulatorInStr.length - 1;
       let sum = '';
       let carryOver = false;
 
       while (currentValIndex >= 0 || accumulatorIndex >= 0) {
         // Add digit from right to left
-        const currentStr = currentVal[currentValIndex];
-        const accumulatorStr = accumulator[accumulatorIndex];
+        const currentStr = currentValueInStr[currentValIndex];
+        const accumulatorStr = accumulatorInStr[accumulatorIndex];
         let currentDigit;
         let accumulatorDigit;
 
@@ -152,7 +166,7 @@ class StringNumber {
   }
 
   /**
-   * Take an incoming list of terms, sum the value and return its string form
+   * Take an incoming list of terms, sum the values and return its string form
    * @param {Array<string | number>} terms are incoming values that could possibly be of type any
    * @return string form of the sum of the incoming list
    */
@@ -178,7 +192,6 @@ class StringNumber {
     } else {
       return this.additionSmInt(terms);
     }
-
   }
 
   /**
@@ -198,6 +211,87 @@ class StringNumber {
     });
 
     return hasLargeInt;
+  }
+
+  /**
+   * Take an incoming list of terms, multiply the values and return its string form
+   * @param {Array<string | number>} terms are incoming values that could possibly be of type any
+   * @return string form of the product of the incoming list
+   */
+  multiply(terms = []) {
+    /**
+     * If incoming terms is not a list or has a length of 0,
+     * that means there's nothing to multiply,
+     * and the result will be 0
+     */
+    if (!Array.isArray(terms) || terms.length === 0) return '0';
+
+    /**
+     * If there's only one element in the incoming list,
+     * assume that the product of that list will be the first element
+     * regardless of type
+     */
+    if (terms.length === 1) return terms.pop();
+
+    const hasLargeInt = this.containsLargeInt(terms);
+
+    if (hasLargeInt) {
+      return terms.reduce((accumulator, currentVal) => {
+        const bigIntToAdd = [];
+        for (let i = currentVal; i > 0; i--) {
+          // ensure accumulator is always a string
+          bigIntToAdd.push(accumulator.toString() || accumulator);
+        }
+
+        return this.additionLgInt(bigIntToAdd);
+      });
+    } else {
+      return this.multiplySmInt(terms);
+    }
+  }
+
+  /**
+   * This function is for string numbers smaller than 54 bits, or 16 digits.
+   *
+   * Take an incoming list of values, convert the values and remove ineligible values;
+   * multiply those values and return the string form of the product to the caller.
+   *
+   * @param {Array[string | number]} terms are incoming list of values that could be of type any
+   * @return {string} the product of the incoming value that is converted back into a string
+   */
+  multiplySmInt(terms = []) {
+    /**
+     * Convert all incoming terms into Number
+     */
+    const numberTerms = this.parseStringToNumber(terms);
+
+    /**
+     * Multiply all eligible Number terms
+     */
+    const productOfTerms = numberTerms.reduce((accumulator, currentVal) => {
+      return accumulator * currentVal;
+    })
+
+    /**
+     * If the product happens to go above MAX_SAFE_INTEGER, run it through the
+     * addition function to get the correct result, otherwise return the string
+     * value of the product
+     */
+    if (productOfTerms < Number.MAX_SAFE_INTEGER) {
+      /**
+       * Convert the result back to a string
+       */
+      return productOfTerms.toString();
+    } else {
+      return terms.reduce((accumulator, currentVal) => {
+        const bigIntToAdd = [];
+        for (let i = currentVal; i > 0; i--) {
+          bigIntToAdd.push(accumulator.toString() || accumulator);
+        }
+
+        return this.additionLgInt(bigIntToAdd);
+      })
+    }
   }
 }
 
